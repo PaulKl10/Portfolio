@@ -106,8 +106,10 @@ function ProjectCard({
 export function ProjectsOverlay() {
   return (
     <section
-      className="relative flex flex-col items-center justify-around"
-      style={{ height: `${(SECTIONS.projects.end - SECTIONS.projects.start) * SCROLL_HEIGHT}vh` }}
+      className="relative flex flex-col items-center justify-between pt-[50vh] pb-[20vh]"
+      style={{
+        height: `${(SECTIONS.projects.end - SECTIONS.projects.start) * SCROLL_HEIGHT}vh`,
+      }}
       aria-label="Projets"
     >
       {PROJECTS.map((project, i) => (
