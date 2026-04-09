@@ -35,7 +35,7 @@ function ProjectCard({
   return (
     <motion.div
       ref={ref}
-      className="relative max-w-sm md:max-w-3xl w-full pointer-events-auto rounded-2xl overflow-hidden"
+      className="relative max-w-sm md:max-w-2xl w-full pointer-events-auto rounded-2xl overflow-hidden"
       style={{
         opacity,
         scale,
@@ -56,7 +56,7 @@ function ProjectCard({
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(to top, ${project.color}15 0%, rgba(5,5,16,0.85) 40%, rgba(5,5,16,0.6) 100%)`,
+            background: `linear-gradient(to top, ${project.color}15 0%, rgba(5,5,16,0.85) 80%, rgba(5,5,16,1) 100%)`,
           }}
         />
       </div>
