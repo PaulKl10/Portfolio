@@ -6,6 +6,7 @@ import { useMotionValueEvent } from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import { CameraRig } from "./CameraRig";
 import { Starfield } from "./Starfield";
+import { WarpEffect } from "./WarpEffect";
 
 interface SpaceSceneProps {
   scrollYProgress: MotionValue<number>;
@@ -46,6 +47,7 @@ export default function SpaceScene({ scrollYProgress }: SpaceSceneProps) {
           mousePosition={mousePosition}
         />
         <Starfield scrollProgress={scrollProgress} />
+        <WarpEffect scrollProgress={scrollProgress} />
       </Canvas>
     </div>
   );
