@@ -40,6 +40,17 @@ const bgFragmentShader = `
     if (dist > 0.5) discard;
     float alpha = smoothstep(0.5, 0.0, dist) * vAlpha;
     gl_FragColor = vec4(vColor, alpha);
+`;
+
+const skillFragmentShader = `
+  varying vec3 vColor;
+  varying float vAlpha;
+
+  void main() {
+    float dist = length(gl_PointCoord - vec2(0.5));
+    if (dist > 0.5) discard;
+    float alpha = smoothstep(0.5, 0.0, dist) * vAlpha * 3.0;
+    gl_FragColor = vec4(vColor, alpha);
   }
 `;
 
@@ -150,10 +161,7 @@ export function Nebula() {
         </bufferGeometry>
         <shaderMaterial
           vertexShader={bgVertexShader}
-          fragmentShader={bgFragmentShader.replace(
-            "vAlpha;",
-            "vAlpha; vAlpha = vAlpha * 3.0;",
-          )}
+          fragmentShader={skillFragmentShader}
           uniforms={{ uTime: { value: 0 } }}
           transparent
           depthWrite={false}
