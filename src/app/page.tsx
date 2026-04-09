@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 import { SCROLL_HEIGHT } from "@/lib/constants";
+import { HeroOverlay } from "@/components/sections/HeroOverlay";
 
 const SpaceScene = dynamic(
   () => import("@/components/canvas/SpaceScene"),
@@ -19,7 +20,7 @@ export default function Home() {
         className="relative z-10 pointer-events-none"
         style={{ height: `${SCROLL_HEIGHT}vh` }}
       >
-        {/* Overlay sections will be added in subsequent tasks */}
+        <HeroOverlay />
       </div>
     </>
   );
