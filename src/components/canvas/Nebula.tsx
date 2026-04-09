@@ -5,12 +5,112 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CAMERA_POSITIONS, SKILLS } from "@/lib/constants";
 
-const BG_PARTICLE_COUNT = 500;
 const NEBULA_CENTER_Z =
   (CAMERA_POSITIONS.nebulaStart + CAMERA_POSITIONS.nebulaEnd) / 2;
-const NEBULA_SPREAD = 150;
+const LAYER_COUNT = 12;
 
-const bgVertexShader = `
+// --- Volumetric nebula layers ---
+
+const nebulaVertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const nebulaFragmentShader = `
+  uniform float uTime;
+  uniform float uSeed;
+  uniform vec3 uColor1;
+  uniform vec3 uColor2;
+  uniform float uOpacity;
+
+  varying vec2 vUv;
+
+  // Simplex-like hash
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
+
+  float snoise(vec2 v) {
+    const vec4 C = vec4(
+      0.211324865405187,   // (3.0-sqrt(3.0))/6.0
+      0.366025403784439,   // 0.5*(sqrt(3.0)-1.0)
+     -0.577350269189626,   // -1.0 + 2.0 * C.x
+      0.024390243902439    // 1.0 / 41.0
+    );
+    vec2 i = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod289(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    m = m * m;
+    m = m * m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+    vec3 g;
+    g.x = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+  }
+
+  float fbm(vec2 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    float frequency = 1.0;
+    for (int i = 0; i < 6; i++) {
+      value += amplitude * snoise(p * frequency);
+      frequency *= 2.0;
+      amplitude *= 0.5;
+    }
+    return value;
+  }
+
+  void main() {
+    vec2 uv = vUv - 0.5;
+    float t = uTime * 0.08;
+
+    // Domain warping for organic shapes
+    vec2 q = vec2(
+      fbm(uv * 2.0 + uSeed + t * 0.3),
+      fbm(uv * 2.0 + uSeed + 5.2 + t * 0.2)
+    );
+    vec2 r = vec2(
+      fbm(uv * 2.0 + 4.0 * q + vec2(1.7, 9.2) + t * 0.15),
+      fbm(uv * 2.0 + 4.0 * q + vec2(8.3, 2.8) + t * 0.1)
+    );
+
+    float n = fbm(uv * 2.0 + 4.0 * r);
+
+    // Shape: fade at edges for soft cloud shape
+    float dist = length(uv) * 2.0;
+    float edgeFade = smoothstep(1.0, 0.3, dist);
+
+    // Color mixing driven by noise
+    float colorMix = n * 0.5 + 0.5;
+    vec3 color = mix(uColor1, uColor2, colorMix);
+
+    // Add bright cores
+    float brightness = smoothstep(0.2, 0.8, n) * 0.6 + 0.4;
+    color *= brightness;
+
+    // Wispy alpha
+    float alpha = smoothstep(-0.3, 0.5, n) * edgeFade * uOpacity;
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
+
+// --- Skill particles (kept from original) ---
+
+const skillVertexShader = `
   attribute float aSize;
   attribute vec3 aColor;
   uniform float uTime;
@@ -19,7 +119,6 @@ const bgVertexShader = `
 
   void main() {
     vec3 pos = position;
-    // Brownian-ish drift
     pos.x += sin(uTime * 0.3 + position.z * 0.1) * 2.0;
     pos.y += cos(uTime * 0.2 + position.x * 0.1) * 2.0;
 
@@ -28,18 +127,6 @@ const bgVertexShader = `
     vAlpha = 0.15 + 0.1 * sin(uTime + position.x);
     gl_PointSize = aSize * (100.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
-  }
-`;
-
-const bgFragmentShader = `
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    float dist = length(gl_PointCoord - vec2(0.5));
-    if (dist > 0.5) discard;
-    float alpha = smoothstep(0.5, 0.0, dist) * vAlpha;
-    gl_FragColor = vec4(vColor, alpha);
   }
 `;
 
@@ -55,35 +142,93 @@ const skillFragmentShader = `
   }
 `;
 
-export function Nebula() {
-  const bgMaterialRef = useRef<THREE.ShaderMaterial>(null);
+interface NebulaLayerData {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: number;
+  seed: number;
+  color1: THREE.Color;
+  color2: THREE.Color;
+  opacity: number;
+}
 
-  const bgData = useMemo(() => {
-    const positions = new Float32Array(BG_PARTICLE_COUNT * 3);
-    const sizes = new Float32Array(BG_PARTICLE_COUNT);
-    const colors = new Float32Array(BG_PARTICLE_COUNT * 3);
+function NebulaLayer({ data }: { data: NebulaLayerData }) {
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-    const purple = new THREE.Color("#a855f7");
-    const blue = new THREE.Color("#00d4ff");
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uSeed: { value: data.seed },
+      uColor1: { value: data.color1 },
+      uColor2: { value: data.color2 },
+      uOpacity: { value: data.opacity },
+    }),
+    [data],
+  );
 
-    for (let i = 0; i < BG_PARTICLE_COUNT; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * NEBULA_SPREAD * 2;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * NEBULA_SPREAD * 2;
-      positions[i * 3 + 2] =
-        NEBULA_CENTER_Z + (Math.random() - 0.5) * NEBULA_SPREAD * 2;
-
-      sizes[i] = Math.random() * 2.5 + 0.5;
-
-      const mix = Math.random();
-      const color = purple.clone().lerp(blue, mix);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+  useFrame(({ clock }) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
     }
-    return { positions, sizes, colors };
+  });
+
+  return (
+    <mesh
+      position={data.position}
+      rotation={data.rotation}
+      scale={data.scale}
+    >
+      <planeGeometry args={[1, 1, 1, 1]} />
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={nebulaVertexShader}
+        fragmentShader={nebulaFragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+export function Nebula() {
+  const skillMaterialRef = useRef<THREE.ShaderMaterial>(null);
+
+  const layers = useMemo<NebulaLayerData[]>(() => {
+    const palette = [
+      { c1: new THREE.Color("#6b21a8"), c2: new THREE.Color("#00d4ff") },
+      { c1: new THREE.Color("#a855f7"), c2: new THREE.Color("#3b82f6") },
+      { c1: new THREE.Color("#7c3aed"), c2: new THREE.Color("#06b6d4") },
+      { c1: new THREE.Color("#4c1d95"), c2: new THREE.Color("#8b5cf6") },
+    ];
+
+    return Array.from({ length: LAYER_COUNT }, (_, i) => {
+      const p = palette[i % palette.length];
+      const angle = (i / LAYER_COUNT) * Math.PI * 2;
+      const spread = 40;
+
+      return {
+        position: [
+          Math.cos(angle) * spread * (0.5 + Math.sin(i * 1.7) * 0.5),
+          Math.sin(angle) * spread * 0.5,
+          NEBULA_CENTER_Z + (Math.sin(i * 2.3) * 40),
+        ] as [number, number, number],
+        rotation: [
+          Math.sin(i * 0.7) * 0.4,
+          Math.cos(i * 1.1) * 0.4,
+          (i * Math.PI) / LAYER_COUNT,
+        ] as [number, number, number],
+        scale: 80 + Math.sin(i * 1.3) * 30,
+        seed: i * 13.37,
+        color1: p.c1,
+        color2: p.c2,
+        opacity: 0.12 + Math.sin(i * 0.9) * 0.05,
+      };
+    });
   }, []);
 
-  // Skill particles — larger, brighter, spread organically
   const skillData = useMemo(() => {
     const positions = new Float32Array(SKILLS.length * 3);
     const colors = new Float32Array(SKILLS.length * 3);
@@ -91,60 +236,37 @@ export function Nebula() {
 
     SKILLS.forEach((skill, i) => {
       const angle = (i / SKILLS.length) * Math.PI * 2;
-      const radius = 30 + Math.random() * 50;
+      const radius = 30 + Math.sin(i * 2.1) * 20;
       positions[i * 3] = Math.cos(angle) * radius;
       positions[i * 3 + 1] =
-        Math.sin(angle) * radius * 0.6 + (Math.random() - 0.5) * 20;
-      positions[i * 3 + 2] =
-        NEBULA_CENTER_Z + (Math.random() - 0.5) * 60;
+        Math.sin(angle) * radius * 0.6 + Math.sin(i * 3.7) * 10;
+      positions[i * 3 + 2] = NEBULA_CENTER_Z + Math.sin(i * 1.5) * 30;
 
       const c = new THREE.Color(skill.color);
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
 
-      sizes[i] = 6 + Math.random() * 2;
+      sizes[i] = 6 + Math.sin(i * 2.3) * 2;
     });
 
     return { positions, colors, sizes };
   }, []);
 
   useFrame(({ clock }) => {
-    if (bgMaterialRef.current) {
-      bgMaterialRef.current.uniforms.uTime.value = clock.getElapsedTime();
+    if (skillMaterialRef.current) {
+      skillMaterialRef.current.uniforms.uTime.value = clock.getElapsedTime();
     }
   });
 
   return (
     <group>
-      {/* Background nebula particles */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[bgData.positions, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-aSize"
-            args={[bgData.sizes, 1]}
-          />
-          <bufferAttribute
-            attach="attributes-aColor"
-            args={[bgData.colors, 3]}
-          />
-        </bufferGeometry>
-        <shaderMaterial
-          ref={bgMaterialRef}
-          vertexShader={bgVertexShader}
-          fragmentShader={bgFragmentShader}
-          uniforms={{ uTime: { value: 0 } }}
-          transparent
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </points>
+      {/* Volumetric nebula layers */}
+      {layers.map((data, i) => (
+        <NebulaLayer key={i} data={data} />
+      ))}
 
-      {/* Skill particles — brighter, larger */}
+      {/* Skill particles */}
       <points>
         <bufferGeometry>
           <bufferAttribute
@@ -161,7 +283,8 @@ export function Nebula() {
           />
         </bufferGeometry>
         <shaderMaterial
-          vertexShader={bgVertexShader}
+          ref={skillMaterialRef}
+          vertexShader={skillVertexShader}
           fragmentShader={skillFragmentShader}
           uniforms={{ uTime: { value: 0 } }}
           transparent
