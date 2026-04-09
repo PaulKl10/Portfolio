@@ -7,6 +7,7 @@ import { HeroOverlay } from "@/components/sections/HeroOverlay";
 import { ProjectsOverlay } from "@/components/sections/ProjectsOverlay";
 import { SkillsOverlay } from "@/components/sections/SkillsOverlay";
 import { ContactOverlay } from "@/components/sections/ContactOverlay";
+import { AudioToggle } from "@/components/AudioToggle";
 
 const SpaceScene = dynamic(
   () => import("@/components/canvas/SpaceScene"),
@@ -19,6 +20,7 @@ export default function Home() {
   return (
     <>
       <SpaceScene scrollYProgress={scrollYProgress} />
+      <AudioToggle />
       <div
         className="relative z-10 pointer-events-none"
         style={{ height: `${SCROLL_HEIGHT}vh` }}
