@@ -9,6 +9,7 @@ import { SkillsOverlay } from "@/components/sections/SkillsOverlay";
 import { ParcoursOverlay } from "@/components/sections/ParcoursOverlay";
 import { ContactOverlay } from "@/components/sections/ContactOverlay";
 import { AudioToggle } from "@/components/AudioToggle";
+import SmokeyCursor from "@/components/ui/smokey-cursor";
 
 const SpaceScene = dynamic(
   () => import("@/components/canvas/SpaceScene"),
@@ -21,6 +22,15 @@ export default function Home() {
   return (
     <>
       <SpaceScene scrollYProgress={scrollYProgress} />
+      <SmokeyCursor
+        densityDissipation={4}
+        velocityDissipation={3}
+        splatRadius={0.1}
+        splatForce={2000}
+        curl={5}
+        pressureIterations={10}
+        colorUpdateSpeed={5}
+      />
       <AudioToggle />
       <div
         className="relative z-10 pointer-events-none"

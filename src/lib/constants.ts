@@ -68,7 +68,7 @@ export const PROJECTS = [
     name: "My Watch List",
     description:
       "Gérez et partagez vos recommandations de films entre amis",
-    stack: ["React", "Next.js", "Supabase"],
+    stack: ["Next.js", "Néon", "Prisma", "TypeScript"],
     github: "https://github.com/PaulKl10/mywatchlist",
     demo: "https://my-watch-list-silk.vercel.app",
     screenshot: "/mywatchlist.png",
@@ -80,7 +80,7 @@ export const PROJECTS = [
     name: "Fit For You",
     description:
       "Suivi de séances de gym, bibliothèque d'exercices et progression",
-    stack: ["React", "Next.js", "Prisma"],
+    stack: ["Next.js", "Supabase", "Prisma", "TypeScript"],
     github: "https://github.com/PaulKl10/FitForYou",
     demo: "https://fit-for-you-fitness.vercel.app",
     screenshot: "/fitforyou.png",
