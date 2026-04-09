@@ -48,7 +48,7 @@ export default function SpaceScene({ scrollYProgress }: SpaceSceneProps) {
           scrollProgress={scrollProgress}
           mousePosition={mousePosition}
         />
-        <Starfield scrollProgress={scrollProgress} />
+        <Starfield />
         <WarpEffect scrollProgress={scrollProgress} />
         <PlanetarySystem />
         <Nebula />

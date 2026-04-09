@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Github, ExternalLink } from "lucide-react";
+import { Code2, ExternalLink } from "lucide-react";
 import { PROJECTS, SECTIONS, SCROLL_HEIGHT } from "@/lib/constants";
 import { useRef } from "react";
 
@@ -63,7 +63,7 @@ function ProjectCard({
           className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
           aria-label={`Code source de ${project.name} sur GitHub`}
         >
-          <Github className="w-5 h-5" />
+          <Code2 className="w-5 h-5" />
         </a>
         <a
           href={project.demo}

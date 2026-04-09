@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Mail, Github, Linkedin } from "lucide-react";
+import { Mail, Code2, Globe } from "lucide-react";
 import { CONTACT, SECTIONS } from "@/lib/constants";
 
 const links = [
@@ -11,12 +11,12 @@ const links = [
     label: "Envoyer un email",
   },
   {
-    icon: Github,
+    icon: Code2,
     href: CONTACT.github,
     label: "Profil GitHub",
   },
   {
-    icon: Linkedin,
+    icon: Globe,
     href: CONTACT.linkedin,
     label: "Profil LinkedIn",
   },

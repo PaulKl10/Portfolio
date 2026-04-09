@@ -33,11 +33,7 @@ const fragmentShader = `
   }
 `;
 
-interface StarfieldProps {
-  scrollProgress: React.MutableRefObject<number>;
-}
-
-export function Starfield({ scrollProgress }: StarfieldProps) {
+export function Starfield() {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
   const { positions, sizes, offsets } = useMemo(() => {
