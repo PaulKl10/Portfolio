@@ -193,9 +193,25 @@ src/
 - Corps : Geist Sans, regular
 - Code/badges skills : Geist Mono
 
+## Scroll snapping & interpolation caméra
+
+- La caméra utilise un **lerping** (interpolation linéaire lisse) pour s'aimanter vers les positions clés (chaque planète, entrée nébuleuse, contact) plutôt que de suivre le scroll pixel par pixel
+- `THREE.MathUtils.lerp` avec un facteur de ~0.05-0.1 pour un mouvement fluide et cinématique
+- Quand le scroll s'arrête entre deux positions clés, la caméra glisse doucement vers la position la plus proche
+- Positions d'ancrage : début Hero, chaque planète (3 stops), centre nébuleuse, contact
+
+## Audio ambiant (optionnel)
+
+- Nappe sonore "space ambient" très légère, activée uniquement au premier clic utilisateur (respect autoplay policy navigateur)
+- Bouton toggle son dans un coin (icône Lucide `Volume2` / `VolumeX`), discret, glassmorphism
+- Volume faible par défaut (~20%), fade-in progressif
+- Fichier audio léger (MP3, <500kb, en boucle)
+- Désactivé par défaut sur mobile pour économiser la bande passante
+
 ## Performance
 
-- Le canvas R3F utilise `frameloop="demand"` quand hors viewport (si pertinent)
+- Le canvas R3F utilise `dpr={[1, 2]}` pour adapter la résolution au device (crucial pour mobile)
+- `frameloop="demand"` quand hors viewport (si pertinent)
 - Les composants overlay sont lazy-loaded par section
 - Les textures planètes sont procédurales (shaders) plutôt que des images à charger
 - `THREE.Points` pour les étoiles (un seul draw call pour ~2000 points)
@@ -212,4 +228,4 @@ src/
 
 - **Desktop (>1024px)** : expérience complète avec 3D et parallaxe souris
 - **Tablet (768-1024px)** : 3D maintenue, parallaxe souris désactivée
-- **Mobile (<768px)** : 3D simplifiée (moins de particules, pas de post-processing), cartes en plein largeur
+- **Mobile (<768px)** : 3D simplifiée (moins de particules, pas de post-processing), cartes en plein largeur, `dpr` plafonné à 1.5
