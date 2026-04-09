@@ -23,18 +23,41 @@ function SkillBadge({
     [0, 1, 1, 0],
   );
 
+  const scale = useTransform(
+    scrollYProgress,
+    [entryPoint - 0.01, entryPoint + 0.02],
+    [0.6, 1],
+  );
+
   return (
     <motion.span
-      className="glass pointer-events-auto px-4 py-2 font-mono text-sm cursor-default select-none"
+      className="pointer-events-auto px-5 py-2.5 font-mono text-sm font-semibold cursor-default select-none rounded-full relative"
       style={{
         opacity,
-        boxShadow: `0 0 15px ${skill.color}40, 0 0 30px ${skill.color}20`,
-        borderColor: `${skill.color}40`,
+        scale,
         color: skill.color,
+        background: `linear-gradient(135deg, ${skill.color}18, ${skill.color}08)`,
+        border: `1px solid ${skill.color}50`,
+        boxShadow: `
+          0 0 20px ${skill.color}30,
+          0 0 40px ${skill.color}15,
+          inset 0 0 20px ${skill.color}10
+        `,
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        textShadow: `0 0 12px ${skill.color}80`,
       }}
-      whileHover={{ scale: 1.1 }}
+      whileHover={{
+        scale: 1.15,
+        boxShadow: `
+          0 0 30px ${skill.color}50,
+          0 0 60px ${skill.color}30,
+          0 0 90px ${skill.color}15,
+          inset 0 0 30px ${skill.color}20
+        `,
+      }}
       animate={{
-        y: [0, -5, 0],
+        y: [0, -6, 0],
       }}
       transition={{
         y: {
@@ -42,9 +65,11 @@ function SkillBadge({
           duration: 3 + index * 0.2,
           ease: "easeInOut",
         },
+        scale: { type: "spring", stiffness: 300 },
+        boxShadow: { duration: 0.3 },
       }}
     >
-      {skill.name}
+      <span className="relative z-10">{skill.name}</span>
     </motion.span>
   );
 }
@@ -58,7 +83,15 @@ export function SkillsOverlay() {
       }}
       aria-label="Compétences"
     >
-      <div className="flex flex-wrap justify-center gap-4 max-w-2xl px-4">
+      <motion.h2
+        className="absolute top-1/4 text-2xl sm:text-3xl font-bold text-glow"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+      >
+        Technologies
+      </motion.h2>
+      <div className="flex flex-wrap justify-center gap-5 max-w-3xl px-6">
         {SKILLS.map((skill, i) => (
           <SkillBadge key={skill.name} skill={skill} index={i} />
         ))}

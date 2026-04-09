@@ -18,8 +18,8 @@ export const SECTIONS = {
   hero: { start: 0, end: 100 / SCROLL_HEIGHT },
   warp: { start: 100 / SCROLL_HEIGHT, end: 150 / SCROLL_HEIGHT },
   projects: { start: 150 / SCROLL_HEIGHT, end: 400 / SCROLL_HEIGHT },
-  nebula: { start: 400 / SCROLL_HEIGHT, end: 600 / SCROLL_HEIGHT },
-  contact: { start: 600 / SCROLL_HEIGHT, end: 700 / SCROLL_HEIGHT },
+  nebula: { start: 400 / SCROLL_HEIGHT, end: 500 / SCROLL_HEIGHT },
+  contact: { start: 500 / SCROLL_HEIGHT, end: 700 / SCROLL_HEIGHT },
 } as const;
 
 export const PROJECTS = [
@@ -30,6 +30,7 @@ export const PROJECTS = [
     stack: ["React", "Next.js", "Supabase"],
     github: "https://github.com/PaulKl10/mywatchlist",
     demo: "https://my-watch-list-silk.vercel.app",
+    screenshot: "/mywatchlist.png",
     color: "#00d4ff",
     planetRadius: 8,
     orbitDistance: 60,
@@ -41,6 +42,7 @@ export const PROJECTS = [
     stack: ["React", "Next.js", "Prisma"],
     github: "https://github.com/PaulKl10/FitForYou",
     demo: "https://fit-for-you-fitness.vercel.app",
+    screenshot: "/fitforyou.png",
     color: "#ff6b35",
     planetRadius: 10,
     orbitDistance: 100,
@@ -51,6 +53,7 @@ export const PROJECTS = [
     stack: ["Next.js", "TypeScript"],
     github: "https://github.com/PaulKl10/Sixtine-Hanin",
     demo: "https://sixtinehaninavocat.com",
+    screenshot: "/sixtinehanin.png",
     color: "#ffd700",
     planetRadius: 7,
     orbitDistance: 140,
@@ -66,12 +69,12 @@ export const SKILLS = [
   { name: ".NET", color: "#512bd4" },
   { name: "Supabase", color: "#3ecf8e" },
   { name: "Neon", color: "#00e599" },
-  { name: "Prisma", color: "#2d3748" },
+  { name: "Prisma", color: "#00d4ff" },
   { name: "MySQL", color: "#4479a1" },
 ] as const;
 
 export const CONTACT = {
-  email: "VOTRE_EMAIL@example.com", // À remplacer
+  email: "paul.klein43@gmail.com",
   github: "https://github.com/PaulKl10",
-  linkedin: "https://linkedin.com/in/VOTRE_PROFIL", // À remplacer
+  linkedin: "https://www.linkedin.com/in/paul-klein-dev/",
 } as const;

@@ -39,13 +39,13 @@ export function ContactOverlay() {
 
   const opacity = useTransform(
     scrollYProgress,
-    [SECTIONS.contact.start, SECTIONS.contact.start + 0.03],
-    [0, 1],
+    [SECTIONS.contact.start - 0.05, SECTIONS.contact.start, SECTIONS.contact.end],
+    [0, 1, 1],
   );
 
   return (
     <motion.section
-      className="relative h-[100vh] flex flex-col items-center justify-center pointer-events-auto"
+      className="relative h-screen flex flex-col items-center justify-center pointer-events-auto"
       style={{ opacity }}
       aria-label="Contact"
     >
