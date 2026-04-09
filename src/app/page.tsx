@@ -6,6 +6,7 @@ import { SCROLL_HEIGHT, SECTIONS } from "@/lib/constants";
 import { HeroOverlay } from "@/components/sections/HeroOverlay";
 import { ProjectsOverlay } from "@/components/sections/ProjectsOverlay";
 import { SkillsOverlay } from "@/components/sections/SkillsOverlay";
+import { ParcoursOverlay } from "@/components/sections/ParcoursOverlay";
 import { ContactOverlay } from "@/components/sections/ContactOverlay";
 import { AudioToggle } from "@/components/AudioToggle";
 
@@ -30,6 +31,7 @@ export default function Home() {
         <ProjectsOverlay />
         <div style={{ height: `${(SECTIONS.nebula.start - SECTIONS.projects.end) * SCROLL_HEIGHT}vh` }} aria-hidden="true" />
         <SkillsOverlay />
+        <ParcoursOverlay />
         <ContactOverlay />
       </div>
     </>

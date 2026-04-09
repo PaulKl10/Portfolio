@@ -1,4 +1,4 @@
-export const SCROLL_HEIGHT = 700; // in vh units
+export const SCROLL_HEIGHT = 900; // in vh units
 
 export const CAMERA_POSITIONS = {
   heroStart: 0,
@@ -9,8 +9,10 @@ export const CAMERA_POSITIONS = {
   project3: 420,
   nebulaStart: 500,
   nebulaEnd: 800,
-  contactStart: 850,
-  contactEnd: 900,
+  parcoursStart: 850,
+  parcoursEnd: 1050,
+  contactStart: 1100,
+  contactEnd: 1200,
 } as const;
 
 // Scroll progress ranges (0-1) for each section
@@ -19,8 +21,47 @@ export const SECTIONS = {
   warp: { start: 100 / SCROLL_HEIGHT, end: 150 / SCROLL_HEIGHT },
   projects: { start: 150 / SCROLL_HEIGHT, end: 400 / SCROLL_HEIGHT },
   nebula: { start: 400 / SCROLL_HEIGHT, end: 500 / SCROLL_HEIGHT },
-  contact: { start: 500 / SCROLL_HEIGHT, end: 700 / SCROLL_HEIGHT },
+  parcours: { start: 530 / SCROLL_HEIGHT, end: 720 / SCROLL_HEIGHT },
+  contact: { start: 740 / SCROLL_HEIGHT, end: 900 / SCROLL_HEIGHT },
 } as const;
+
+export const EXPERIENCES = [
+  {
+    company: "Gamma-project",
+    role: "Ingénieur développement",
+    period: "Avril 2025 — Présent",
+    location: "Lyon",
+  },
+  {
+    company: "Gamma-project",
+    role: "Développeur",
+    period: "Octobre 2023 — Mars 2025",
+    location: "Lyon",
+  },
+] as const;
+
+export const FORMATIONS = [
+  {
+    school: "Simplon Auvergne-Rhône-Alpes",
+    diploma: "Concepteur et développeur d'application",
+    period: "Sept. 2023 — Mars 2025",
+  },
+  {
+    school: "Human Booster",
+    diploma: "Développeur Web et Web Mobile",
+    period: "Sept. 2022 — Sept. 2023",
+  },
+  {
+    school: "IFPA",
+    diploma: "Découverte technique en informatique",
+    period: "Fév. 2022 — Juin 2022",
+  },
+  {
+    school: "IFC",
+    diploma: "BTS Management des Unités Commerciales",
+    period: "Oct. 2017 — Juin 2019",
+  },
+] as const;
 
 export const PROJECTS = [
   {
