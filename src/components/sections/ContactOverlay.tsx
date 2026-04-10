@@ -91,7 +91,7 @@ export function ContactOverlay() {
       <div className="h-screen flex items-center justify-center">
         <div className="flex flex-col gap-2 items-center justify-center p-4 bg-dark/70 rounded-lg backdrop-blur-sm">
           <Image
-            src="/profil.png"
+            src="/profile.jpeg"
             alt="Paul Klein"
             width={60}
             height={60}

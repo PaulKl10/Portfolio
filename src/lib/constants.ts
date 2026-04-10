@@ -66,8 +66,7 @@ export const FORMATIONS = [
 export const PROJECTS = [
   {
     name: "My Watch List",
-    description:
-      "Gérez et partagez vos recommandations de films entre amis",
+    description: "Gérez et partagez vos recommandations de films entre amis",
     stack: ["Next.js", "Néon", "Prisma", "TypeScript"],
     github: "https://github.com/PaulKl10/mywatchlist",
     demo: "https://my-watch-list-silk.vercel.app",
@@ -103,15 +102,19 @@ export const PROJECTS = [
 
 export const SKILLS = [
   { name: "React", color: "#61dafb" },
-  { name: "Next.js", color: "#ffffff" },
+  { name: "Next.js", color: "#e4e4e7" },
   { name: "TypeScript", color: "#3178c6" },
-  { name: "Figma", color: "#f24e1e" },
-  { name: "C#", color: "#239120" },
+  { name: "Figma", color: "#a259ff" },
+  { name: "C#", color: "#3ecf4e" },
   { name: ".NET", color: "#512bd4" },
   { name: "Supabase", color: "#3ecf8e" },
-  { name: "Neon", color: "#00e599" },
-  { name: "Prisma", color: "#00d4ff" },
-  { name: "MySQL", color: "#4479a1" },
+  { name: "Neon", color: "#c8ff00" },
+  { name: "Prisma", color: "#14b8a6" },
+  { name: "MySQL", color: "#e48e00" },
+  { name: "Azure DevOps", color: "#0078d4" },
+  { name: "Azure Portal", color: "#ffb900" },
+  { name: "GitHub", color: "#6e5494" },
+  { name: "GitLab", color: "#fc6d26" },
 ] as const;
 
 export const CONTACT = {

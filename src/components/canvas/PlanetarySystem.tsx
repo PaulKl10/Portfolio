@@ -532,9 +532,11 @@ function Star() {
   );
 }
 
+const SYSTEM_OFFSET_X = -200;
+
 export function PlanetarySystem() {
   return (
-    <group>
+    <group position={[SYSTEM_OFFSET_X, 0, 0]}>
       <Star />
       <pointLight
         position={[0, 0, SYSTEM_CENTER_Z]}
