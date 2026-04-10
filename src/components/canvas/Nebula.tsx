@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import React, { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { CAMERA_POSITIONS, SKILLS } from "@/lib/constants";
 
 const NEBULA_CENTER_Z =
   (CAMERA_POSITIONS.nebulaStart + CAMERA_POSITIONS.nebulaEnd) / 2;
-const LAYER_COUNT = 12;
+const LAYER_COUNT = 8;
 
 // --- Volumetric nebula layers ---
 
@@ -65,7 +65,7 @@ const nebulaFragmentShader = `
     float value = 0.0;
     float amplitude = 0.5;
     float frequency = 1.0;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 4; i++) {
       value += amplitude * snoise(p * frequency);
       frequency *= 2.0;
       amplitude *= 0.5;
@@ -77,17 +77,13 @@ const nebulaFragmentShader = `
     vec2 uv = vUv - 0.5;
     float t = uTime * 0.08;
 
-    // Domain warping for organic shapes
+    // Single-level domain warping (cheaper, still organic)
     vec2 q = vec2(
       fbm(uv * 2.0 + uSeed + t * 0.3),
       fbm(uv * 2.0 + uSeed + 5.2 + t * 0.2)
     );
-    vec2 r = vec2(
-      fbm(uv * 2.0 + 4.0 * q + vec2(1.7, 9.2) + t * 0.15),
-      fbm(uv * 2.0 + 4.0 * q + vec2(8.3, 2.8) + t * 0.1)
-    );
 
-    float n = fbm(uv * 2.0 + 4.0 * r);
+    float n = fbm(uv * 2.0 + 3.0 * q);
 
     // Shape: fade at edges for soft cloud shape
     float dist = length(uv) * 2.0;
@@ -152,7 +148,13 @@ interface NebulaLayerData {
   opacity: number;
 }
 
-function NebulaLayer({ data }: { data: NebulaLayerData }) {
+function NebulaLayer({
+  data,
+  timeRef,
+}: {
+  data: NebulaLayerData;
+  timeRef: React.RefObject<number>;
+}) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
   const uniforms = useMemo(
@@ -166,9 +168,9 @@ function NebulaLayer({ data }: { data: NebulaLayerData }) {
     [data],
   );
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
+      materialRef.current.uniforms.uTime.value = timeRef.current;
     }
   });
 
@@ -195,6 +197,7 @@ function NebulaLayer({ data }: { data: NebulaLayerData }) {
 
 export function Nebula() {
   const skillMaterialRef = useRef<THREE.ShaderMaterial>(null);
+  const timeRef = useRef(0);
 
   const layers = useMemo<NebulaLayerData[]>(() => {
     const palette = [
@@ -253,9 +256,11 @@ export function Nebula() {
     return { positions, colors, sizes };
   }, []);
 
+  // Single useFrame for the whole Nebula — time propagated via ref to all layers
   useFrame(({ clock }) => {
+    timeRef.current = clock.getElapsedTime();
     if (skillMaterialRef.current) {
-      skillMaterialRef.current.uniforms.uTime.value = clock.getElapsedTime();
+      skillMaterialRef.current.uniforms.uTime.value = timeRef.current;
     }
   });
 
@@ -263,7 +268,7 @@ export function Nebula() {
     <group>
       {/* Volumetric nebula layers */}
       {layers.map((data, i) => (
-        <NebulaLayer key={i} data={data} />
+        <NebulaLayer key={i} data={data} timeRef={timeRef} />
       ))}
 
       {/* Skill particles */}

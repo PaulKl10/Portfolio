@@ -91,7 +91,7 @@ export function SkillsOverlay() {
       >
         Technologies
       </motion.h2>
-      <div className="flex flex-wrap justify-center gap-5 max-w-3xl px-6 bg-dark/70 rounded-lg backdrop-blur-sm py-6">
+      <div className="flex flex-wrap justify-center gap-5 max-w-3xl">
         {SKILLS.map((skill, i) => (
           <SkillBadge key={skill.name} skill={skill} index={i} />
         ))}

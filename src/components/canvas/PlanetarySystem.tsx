@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, RefObject } from "react";
+import { useRef, useMemo, RefObject, ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { PROJECTS, CAMERA_POSITIONS } from "@/lib/constants";
@@ -12,6 +12,7 @@ const PLANET_STYLES = [
   { color1: "#00d4ff", color2: "#0a2a4a", color3: "#1a5a7a", seed: 1.0, style: 0 },
   { color1: "#ff6b35", color2: "#4a1a0a", color3: "#ff2200", seed: 2.0, style: 1 },
   { color1: "#ffd700", color2: "#8b6914", color3: "#fff5cc", seed: 3.0, style: 2 },
+  { color1: "#c8a882", color2: "#6b3d1e", color3: "#f0d9b5", seed: 4.0, style: 3 }, // Jupiter
 ];
 
 // ─── GLSL noise: 3D gradient noise + fBm (5 octaves) ───
@@ -199,7 +200,7 @@ void main() {
     float smoke = fbm(rotP * 5.0 + vec3(uTime * 0.05), uSeed + 45.0);
     color = mix(color, vec3(0.15, 0.1, 0.08), eruption * smoke * 0.4);
 
-  } else {
+  } else if (uStyle == 2) {
     // MARBLE/GOLDEN WORLD: layered veins, subsurface shimmer, clouds
 
     // Layered marble veins
@@ -225,6 +226,39 @@ void main() {
     // Thin haze layer
     float haze = fbm(rotP * 2.0 + vec3(uTime * 0.02, 0.0, 0.0), uSeed + 60.0);
     color = mix(color, uColor1 * 0.8, smoothstep(0.2, 0.5, haze) * 0.15);
+
+  } else {
+    // JUPITER: horizontal cloud bands + Great Red Spot
+
+    float lat = normalize(vPosition).y;
+
+    // Wide primary bands driven by latitude + noise warp
+    float primaryBand = sin(lat * 10.0 + fbm(rotP * 1.2, uSeed) * 2.0) * 0.5 + 0.5;
+    // Fine secondary bands
+    float fineBand = sin(lat * 28.0 + fbm(rotP * 2.5, uSeed + 5.0) * 1.0) * 0.5 + 0.5;
+
+    vec3 cream = uColor3;
+    vec3 tan_  = uColor1;
+    vec3 brown = uColor2;
+
+    color = mix(brown, cream, primaryBand);
+    color = mix(color, tan_, fineBand * 0.55);
+
+    // Turbulence at band edges
+    float turb = fbm(rotP * 5.0 + vec3(slowTime * 0.06, 0.0, 0.0), uSeed + 15.0) * 0.5 + 0.5;
+    color = mix(color, cream, turb * primaryBand * 0.12);
+
+    // Great Red Spot — south of equator, slowly drifting east
+    vec3 norm = normalize(vPosition);
+    float dLat = norm.y + 0.28;
+    float lon   = atan(norm.z, norm.x) / 3.14159265;
+    float dLon  = mod(lon - slowTime * 0.025 + 2.0, 2.0) - 1.0;
+    float spotDist = sqrt(dLat * dLat * 18.0 + dLon * dLon * 5.0);
+    float spot = smoothstep(0.45, 0.12, spotDist);
+
+    float spotSwirl = fbm(rotP * 4.0 - vec3(0.0, slowTime * 0.07, 0.0), uSeed + 30.0) * 0.5 + 0.5;
+    vec3 spotColor = mix(vec3(0.85, 0.30, 0.10), vec3(0.72, 0.15, 0.06), spotSwirl);
+    color = mix(color, spotColor, spot * 0.88);
   }
 
   // ── Atmosphere fresnel rim ──
@@ -267,9 +301,11 @@ const starVertexShader = /* glsl */ `
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec3 vViewDir;
+varying vec3 vPosition;
 
 void main() {
   vUv = uv;
+  vPosition = position;
   vNormal = normalize(normalMatrix * normal);
   vec4 worldPos = modelMatrix * vec4(position, 1.0);
   vViewDir = normalize(cameraPosition - worldPos.xyz);
@@ -284,45 +320,148 @@ uniform float uTime;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec3 vViewDir;
+varying vec3 vPosition;
 
 void main() {
-  vec2 uv = vUv - 0.5;
-  float dist = length(uv);
+  float slowTime = uTime * 0.04;
 
-  // Core glow
-  float core = exp(-dist * dist * 10.0);
-  float corona = exp(-dist * dist * 2.5) * 0.5;
+  // Rotating sample point — 3D noise avoids UV pole distortion
+  float sinT = sin(slowTime * 0.7);
+  float cosT = cos(slowTime * 0.7);
+  vec3 rotP = vec3(
+    vPosition.x * cosT - vPosition.z * sinT,
+    vPosition.y,
+    vPosition.x * sinT + vPosition.z * cosT
+  );
 
-  // Animated plasma surface
-  vec3 p = vec3(vUv * 3.0, uTime * 0.08);
-  float plasma1 = fbm(p, 7.0);
-  float plasma2 = fbm(p * 2.0 + vec3(uTime * 0.05), 12.0);
-  float surface = plasma1 * 0.6 + plasma2 * 0.4;
+  float NdotV = clamp(dot(vNormal, vViewDir), 0.0, 1.0);
 
-  float pulse = 0.92 + 0.08 * sin(uTime * 1.0);
+  // ── Limb darkening (u≈0.4, realistic solar photosphere) ──
+  float limb = pow(NdotV, 0.35);
 
-  // Color gradient: white core → yellow → orange corona
-  vec3 coreColor = vec3(1.0, 0.98, 0.92);
-  vec3 midColor = vec3(1.0, 0.85, 0.4);
-  vec3 coronaColor = vec3(1.0, 0.5, 0.1);
+  // Color: white-hot core → yellow mid → orange limb
+  vec3 coreColor = vec3(1.00, 0.97, 0.88);
+  vec3 midColor  = vec3(1.00, 0.80, 0.28);
+  vec3 limbColor = vec3(0.95, 0.38, 0.05);
 
-  vec3 color = mix(coronaColor, midColor, smoothstep(0.3, 0.15, dist));
-  color = mix(color, coreColor, core);
-  color *= (core + corona);
+  vec3 color = mix(limbColor, midColor, limb);
+  color = mix(color, coreColor, pow(limb, 3.2));
 
-  // Surface texture with brighter granulation
-  float granulation = surface * 0.5 + 0.5;
-  color += granulation * 0.12 * coreColor;
+  // ── Granulation: convection cell pattern ──
+  float gran1 = fbm(rotP * 2.2, 7.0);
+  float gran2 = fbm(rotP * 5.8 + vec3(0.0, slowTime * 0.7, 0.0), 13.0);
+  float cells = gran1 * 0.65 + gran2 * 0.35;
+  float cellMask = smoothstep(-0.05, 0.38, cells);
+  // Bright cell interiors, dark intergranular lanes
+  color = mix(color * 0.76, color * 1.20, cellMask);
+
+  // ── Sunspots: dark quasi-stable regions, avoid the limb ──
+  float spot1 = warpedFbm(rotP * 0.85 + vec3(slowTime * 0.05, 0.0, 0.0), 3.0);
+  float spot2 = warpedFbm(rotP * 1.05 + vec3(0.0, slowTime * 0.04, 1.5), 9.0);
+  float spots = smoothstep(0.60, 0.73, spot1) * 0.65
+              + smoothstep(0.63, 0.76, spot2) * 0.30;
+  vec3 spotColor = color * 0.12 + vec3(0.05, 0.01, 0.0);
+  color = mix(color, spotColor, spots * limb * 0.92);
+
+  // ── Plasma flows: large-scale animated structure ──
+  float plasma = warpedFbm(rotP * 0.65 + vec3(slowTime * 0.3), 5.0) * 0.5 + 0.5;
+  color = mix(color, midColor * 1.5, plasma * 0.06);
+
+  // ── Solar prominences: bright eruptions at the limb ──
+  float promN = fbm(rotP * 2.8 + vec3(uTime * 0.09, 0.0, 0.0), 17.0);
+  float promMask = pow(1.0 - NdotV, 5.0) * smoothstep(0.22, 0.62, promN);
+  color += limbColor * 3.0 * promMask;
+
+  // ── Faculae: bright patches near spots at limb ──
+  float facula = fbm(rotP * 4.0, 11.0) * 0.5 + 0.5;
+  float faculaMask = smoothstep(0.62, 0.72, facula) * pow(1.0 - NdotV, 1.2) * 0.5;
+  color += coreColor * faculaMask * 0.4;
+
+  // ── Pulse ──
+  float pulse = 0.94 + 0.06 * sin(uTime * 0.55 + gran1 * 6.28);
   color *= pulse;
 
-  // Solar prominences
-  float prom = fbm(vec3(vUv * 5.0, uTime * 0.15), 20.0);
-  float promMask = smoothstep(0.35, 0.5, dist) * smoothstep(0.6, 0.45, dist);
-  color += coronaColor * prom * promMask * 0.5;
+  // ── Fresnel chromosphere glow at limb ──
+  float fresnel = pow(1.0 - NdotV, 2.0);
+  color += limbColor * fresnel * 1.1;
 
-  // Fresnel edge glow
-  float fresnel = pow(1.0 - clamp(dot(vNormal, vViewDir), 0.0, 1.0), 2.5);
-  color += coronaColor * fresnel * 0.6;
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
+
+// ─── Corona shaders ───
+const coronaVertexShader = /* glsl */ `
+varying vec3 vNormal;
+varying vec3 vViewDir;
+varying vec3 vPosition;
+
+void main() {
+  vPosition = position;
+  vNormal = normalize(normalMatrix * normal);
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vViewDir = normalize(cameraPosition - worldPos.xyz);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const coronaFragmentShader = /* glsl */ `
+${NOISE_GLSL}
+
+uniform float uTime;
+varying vec3 vNormal;
+varying vec3 vViewDir;
+varying vec3 vPosition;
+
+void main() {
+  float NdotV = clamp(dot(vNormal, vViewDir), 0.0, 1.0);
+
+  // Fresnel rim — max at grazing angle
+  float fresnel = pow(1.0 - NdotV, 2.5);
+
+  // Animated coronal streamers in 3D
+  float slowTime = uTime * 0.025;
+  float sinT = sin(slowTime); float cosT = cos(slowTime);
+  vec3 rotP = vec3(
+    vPosition.x * cosT - vPosition.z * sinT,
+    vPosition.y,
+    vPosition.x * sinT + vPosition.z * cosT
+  );
+  float streamers = fbm(rotP * 0.6, 19.0) * 0.5 + 0.5;
+  streamers = pow(streamers, 1.8);
+
+  float flicker = 0.88 + 0.12 * sin(uTime * 0.35 + streamers * 3.14);
+
+  vec3 inner = vec3(1.00, 0.65, 0.15);
+  vec3 outer = vec3(0.90, 0.30, 0.05);
+  vec3 coronaColor = mix(outer, inner, fresnel);
+
+  float alpha = fresnel * (0.45 + streamers * 0.55) * flicker * 0.75;
+
+  gl_FragColor = vec4(coronaColor, alpha);
+}
+`;
+
+// ─── Moon shader ───
+const moonFragmentShader = /* glsl */ `
+${NOISE_GLSL}
+
+uniform float uTime;
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec3 vViewDir;
+
+void main() {
+  float surface = fbm(vPosition * 3.0, 5.0) * 0.5 + 0.5;
+  float craters = fbm(vPosition * 9.0, 13.0) * 0.3;
+  float t = clamp(surface + craters, 0.0, 1.0);
+
+  vec3 light = vec3(0.70, 0.68, 0.65);
+  vec3 dark  = vec3(0.28, 0.26, 0.25);
+  vec3 color = mix(dark, light, t);
+
+  vec3 lightDir = normalize(vec3(1.0, 0.3, 0.8));
+  float diffuse = clamp(dot(vNormal, lightDir) * 0.5 + 0.5, 0.0, 1.0);
+  color *= 0.08 + 0.92 * pow(diffuse, 1.2);
 
   gl_FragColor = vec4(color, 1.0);
 }
@@ -439,12 +578,41 @@ function PlanetRings({
   );
 }
 
+function Moon() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const MOON_DIST = 17;
+  const MOON_SPEED = 0.65;
+
+  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+    const t = clock.getElapsedTime() * MOON_SPEED;
+    meshRef.current.position.x = Math.cos(t) * MOON_DIST;
+    meshRef.current.position.y = Math.sin(t * 0.12) * 2.5;
+    meshRef.current.position.z = Math.sin(t) * MOON_DIST;
+    uniforms.uTime.value = clock.getElapsedTime();
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[2, 32, 32]} />
+      <shaderMaterial
+        vertexShader={planetVertexShader}
+        fragmentShader={moonFragmentShader}
+        uniforms={uniforms}
+      />
+    </mesh>
+  );
+}
+
 function Planet({
   radius,
   orbitDistance,
   orbitSpeed,
   index,
   hasRings,
+  children,
 }: {
   color: string;
   radius: number;
@@ -452,6 +620,7 @@ function Planet({
   orbitSpeed: number;
   index: number;
   hasRings?: boolean;
+  children?: ReactNode;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const timeRef = useRef(0);
@@ -499,36 +668,51 @@ function Planet({
           time={timeRef}
         />
       )}
+      {children}
     </group>
   );
 }
 
+const STAR_RADIUS = 40;
+
 function Star() {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-    }),
-    [],
-  );
+  const groupRef = useRef<THREE.Group>(null);
+  const starUniforms   = useMemo(() => ({ uTime: { value: 0 } }), []);
+  const coronaUniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
 
   useFrame(({ clock }) => {
-    if (!meshRef.current) return;
+    if (!groupRef.current) return;
     const t = clock.getElapsedTime();
-    const pulse = 1.0 + 0.04 * Math.sin(t * 1.2);
-    meshRef.current.scale.setScalar(pulse);
-    uniforms.uTime.value = t;
+    const pulse = 1.0 + 0.025 * Math.sin(t * 0.7);
+    groupRef.current.scale.setScalar(pulse);
+    starUniforms.uTime.value = t;
+    coronaUniforms.uTime.value = t;
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, SYSTEM_CENTER_Z]}>
-      <sphereGeometry args={[15, 64, 64]} />
-      <shaderMaterial
-        vertexShader={starVertexShader}
-        fragmentShader={starFragmentShader}
-        uniforms={uniforms}
-      />
-    </mesh>
+    <group ref={groupRef} position={[0, 0, SYSTEM_CENTER_Z]}>
+      {/* Photosphere */}
+      <mesh>
+        <sphereGeometry args={[STAR_RADIUS, 64, 64]} />
+        <shaderMaterial
+          vertexShader={starVertexShader}
+          fragmentShader={starFragmentShader}
+          uniforms={starUniforms}
+        />
+      </mesh>
+      {/* Corona — additive halo, visible at limb and beyond */}
+      <mesh>
+        <sphereGeometry args={[STAR_RADIUS * 1.28, 64, 32]} />
+        <shaderMaterial
+          vertexShader={coronaVertexShader}
+          fragmentShader={coronaFragmentShader}
+          uniforms={coronaUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -540,9 +724,9 @@ export function PlanetarySystem() {
       <Star />
       <pointLight
         position={[0, 0, SYSTEM_CENTER_Z]}
-        intensity={200}
-        distance={500}
-        color="#fff8e7"
+        intensity={600}
+        distance={900}
+        color="#fff5e0"
       />
       <ambientLight intensity={0.1} />
 
@@ -555,8 +739,18 @@ export function PlanetarySystem() {
           orbitSpeed={0.08 + i * 0.02}
           index={i}
           hasRings={i === 2}
-        />
+        >
+          {i === 0 && <Moon />}
+        </Planet>
       ))}
+      {/* Jupiter — orbite extérieure, plus lente */}
+      <Planet
+        color="#c8a882"
+        radius={22}
+        orbitDistance={215}
+        orbitSpeed={0.032}
+        index={3}
+      />
     </group>
   );
 }
